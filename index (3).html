@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RealPlay Collection Album Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E1C2B; --panel:#16304A; --panel2:#1E3E5E; --line:#2C4A68;
+  --gold:#C9A14A; --text:#E9EFF5; --muted:#8AA0B6;
+  --bar:#4E84B8; --median:#FFFFFF; --mean:#C9A14A;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Inter",system-ui,sans-serif; line-height:1.5;
+  background-image:radial-gradient(900px 500px at 80% -10%, #1B3A5A 0%, transparent 60%);
+}
+.wrap{max-width:1180px; margin:0 auto; padding:40px 24px 64px}
+header{margin-bottom:32px}
+.eyebrow{font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--gold); margin:0 0 10px}
+h1{font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:clamp(28px,4vw,40px);
+  margin:0 0 8px; letter-spacing:-.01em}
+.sub{color:var(--muted); font-size:16px; max-width:60ch; margin:0}
+main{display:grid; grid-template-columns:320px 1fr; gap:24px; align-items:start}
+.panel{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px}
+.panel h2{font-family:"Space Grotesk",sans-serif; font-size:13px; font-weight:600;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:0 0 18px}
+.field{margin-bottom:18px}
+.field label{display:block; font-size:13px; font-weight:500; margin-bottom:7px}
+.field .hint{color:var(--muted); font-weight:400; font-size:12px}
+.row{display:flex; gap:10px}
+.row .field{flex:1; margin-bottom:18px}
+input[type=number]{width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text);
+  font-family:"JetBrains Mono",monospace; font-size:14px; padding:9px 11px; border-radius:8px}
+input[type=range]{width:100%; accent-color:var(--gold); margin:4px 0}
+.range-val{font-family:"JetBrains Mono",monospace; font-size:13px; color:var(--gold); float:right}
+.toggle{display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none}
+.toggle input{width:18px; height:18px; accent-color:var(--gold); cursor:pointer}
+button{width:100%; margin-top:6px; background:var(--gold); color:#10202F; border:0; cursor:pointer;
+  font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; padding:13px; border-radius:10px;
+  transition:transform .08s ease, filter .15s ease}
+button:hover{filter:brightness(1.06)} button:active{transform:translateY(1px)}
+button:disabled{opacity:.6; cursor:wait}
+
+.results{display:flex; flex-direction:column; gap:24px; min-width:0}
+.kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+.kpi{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+.kpi .v{font-family:"JetBrains Mono",monospace; font-weight:700; font-size:30px; line-height:1}
+.kpi .v.median{color:var(--median)} .kpi .v.mean{color:var(--mean)}
+.kpi .l{font-size:12px; color:var(--muted); margin-top:8px}
+.note{font-size:13px; color:var(--muted)}
+.note b{color:var(--text); font-weight:600}
+.note .gold{color:var(--gold); font-weight:600}
+.chart{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 20px 22px}
+.chart h3{font-family:"Space Grotesk",sans-serif; font-size:14px; font-weight:600; margin:0 0 2px}
+.chart .cap{font-size:12.5px; color:var(--muted); margin:0 0 12px}
+canvas{width:100%; height:260px; display:block}
+.tail-stats{display:flex; gap:26px; flex-wrap:wrap; margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.tail-stats div{font-size:13px; color:var(--muted)}
+.tail-stats b{display:block; font-family:"JetBrains Mono",monospace; font-size:20px; color:var(--gold); font-weight:700}
+.placeholder{color:var(--muted); font-size:14px; text-align:center; padding:40px 0}
+footer{margin-top:36px; color:var(--muted); font-size:12.5px; text-align:center}
+footer code{font-family:"JetBrains Mono",monospace; color:var(--text)}
+
+@media (max-width:860px){
+  main{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="eyebrow">RealPlay · Product Model</p>
+  <h1>Collection Album Simulator</h1>
+  <p class="sub">How many packs it takes to complete the 81-card album, and where the chase stalls. Change the configuration, run it, and watch the tail move.</p>
+</header>
+
+<main>
+  <section class="panel" aria-label="Configuration">
+    <h2>Configuration</h2>
+    <div class="row">
+      <div class="field">
+        <label for="sets">Sets</label>
+        <input type="number" id="sets" value="9" min="1" max="40">
+      </div>
+      <div class="field">
+        <label for="cps">Cards / set</label>
+        <input type="number" id="cps" value="9" min="1" max="40">
+      </div>
+    </div>
+    <div class="field">
+      <label for="cpp">Cards per pack</label>
+      <input type="number" id="cpp" value="4" min="1" max="20">
+    </div>
+    <div class="field">
+      <label for="skew">Rarity skew <span class="range-val" id="skewv">0</span>
+        <span class="hint">0 is a uniform drop. Higher makes some cards rarer and the tail heavier.</span></label>
+      <input type="range" id="skew" min="0" max="100" value="0">
+    </div>
+    <div class="field">
+      <label class="toggle"><input type="checkbox" id="pity"> Pity</label>
+      <span class="hint">Guarantee a new card after a run of duplicates.</span>
+    </div>
+    <div class="field" id="pityThrField" style="display:none">
+      <label for="pityThr">Pity threshold <span class="range-val" id="pityThrv">10</span>
+        <span class="hint">Duplicates in a row before a guaranteed new card.</span></label>
+      <input type="range" id="pityThr" min="2" max="40" value="10">
+    </div>
+    <div class="field">
+      <label for="runs">Simulations <span class="range-val" id="runsv">20,000</span></label>
+      <input type="range" id="runs" min="2000" max="60000" step="2000" value="20000">
+    </div>
+    <button id="run">Run simulation</button>
+  </section>
+
+  <section class="results">
+    <div class="kpis">
+      <div class="kpi"><div class="v median" id="kMedian">·</div><div class="l">Median packs</div></div>
+      <div class="kpi"><div class="v mean" id="kMean">·</div><div class="l">Mean packs</div></div>
+      <div class="kpi"><div class="v" id="kP90">·</div><div class="l">90th percentile</div></div>
+      <div class="kpi"><div class="v" id="kP99">·</div><div class="l">99th percentile</div></div>
+    </div>
+    <p class="note" id="anchor">Uniform baseline (closed form): <b id="anchorVal">·</b> packs. The mean is the average run, the median is the typical one, and the gap is the skew.</p>
+
+    <div class="chart">
+      <h3>Distribution of packs to a full album</h3>
+      <p class="cap">Each run is one album completed from zero. <span style="color:var(--median)">Median</span> and <span style="color:var(--mean)">mean</span> marked.</p>
+      <canvas id="hist"></canvas>
+    </div>
+
+    <div class="chart">
+      <h3>Where the packs go</h3>
+      <p class="cap">Expected packs to reach each point in the album. Flat early, steep late.</p>
+      <canvas id="tail"></canvas>
+      <div class="tail-stats" id="tailStats"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Single-file client-side model. Edit the configuration, or fork and change <code>index.html</code>. No data leaves the page.
+</footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString();
+
+function harmonic(n){ let h=0; for(let k=1;k<=n;k++) h+=1/k; return h; }
+
+function buildCum(n, skew){
+  const f = (skew/100)*4;            // max skew factor
+  const cum = new Float64Array(n); let s=0;
+  for(let i=0;i<n;i++){ s += Math.exp(-f * i/(n-1)); cum[i]=s; }
+  return {cum, total:s};
+}
+
+function simulate(p){
+  const {n, cpp, skew, pityOn, pityThr, runs} = p;
+  const maxPacks = 1200;
+  const uniform = skew === 0;
+  let cum, total;
+  if(!uniform){ const r = buildCum(n, skew); cum=r.cum; total=r.total; }
+  const draw = uniform
+    ? () => (Math.random()*n)|0
+    : () => { const r=Math.random()*total; let lo=0,hi=n-1;
+        while(lo<hi){const m=(lo+hi)>>1; if(cum[m]<r) lo=m+1; else hi=m;} return lo; };
+
+  const results = new Int32Array(runs);
+  const reachSum = new Float64Array(n+1);
+  const seen = new Uint8Array(n);
+  const unseen = new Int32Array(n);
+
+  for(let run=0; run<runs; run++){
+    seen.fill(0);
+    let got=0, dup=0, packs=0;
+    while(got<n && packs<maxPacks){
+      packs++;
+      for(let k=0;k<cpp;k++){
+        let card;
+        if(pityOn && dup>=pityThr){
+          let u=0; for(let i=0;i<n;i++) if(!seen[i]) unseen[u++]=i;
+          card = unseen[(Math.random()*u)|0]; dup=0;
+        } else card = draw();
+        if(!seen[card]){ seen[card]=1; got++; dup=0; reachSum[got]+=packs; }
+        else dup++;
+        if(got===n) break;
+      }
+    }
+    results[run]=packs;
+  }
+
+  const sorted = Int32Array.from(results).sort();
+  let sum=0; for(let i=0;i<runs;i++) sum+=results[i];
+  const reachAvg = new Float64Array(n+1);
+  for(let c=1;c<=n;c++) reachAvg[c]=reachSum[c]/runs;
+  return {
+    results, sorted,
+    mean: sum/runs,
+    median: sorted[(runs/2)|0],
+    p90: sorted[Math.floor(runs*0.90)],
+    p99: sorted[Math.floor(runs*0.99)],
+    max: sorted[runs-1],
+    reachAvg
+  };
+}
+
+function setup(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  const r = canvas.getBoundingClientRect();
+  canvas.width = Math.round(r.width*dpr);
+  canvas.height = Math.round(r.height*dpr);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx, w:r.width, h:r.height};
+}
+
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+function drawHist(res){
+  const {ctx,w,h} = setup($('hist'));
+  ctx.clearRect(0,0,w,h);
+  const PADL=44, PADB=30, PADT=12, PADR=12;
+  const plotW=w-PADL-PADR, plotH=h-PADB-PADT;
+  const cap = Math.max(res.p99*1.15, res.median*1.6);
+  const nb = 56, bw = cap/nb;
+  const counts = new Array(nb).fill(0);
+  for(let i=0;i<res.results.length;i++){
+    const b = Math.floor(res.results[i]/bw);
+    if(b>=0 && b<nb) counts[b]++;
+  }
+  const maxC = Math.max(...counts);
+  const x = v => PADL + (v/cap)*plotW;
+  const barW = plotW/nb;
+  ctx.fillStyle = css('--bar');
+  for(let i=0;i<nb;i++){
+    const bh = (counts[i]/maxC)*plotH;
+    ctx.fillRect(PADL + i*barW, PADT+plotH-bh, Math.max(barW-1,1), bh);
+  }
+  // axes
+  ctx.strokeStyle = css('--line'); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PADL,PADT); ctx.lineTo(PADL,PADT+plotH); ctx.lineTo(PADL+plotW,PADT+plotH); ctx.stroke();
+  ctx.fillStyle = css('--muted'); ctx.font='11px "JetBrains Mono", monospace'; ctx.textAlign='center';
+  const step = niceStep(cap/5);
+  for(let v=0; v<=cap; v+=step){ ctx.fillText(Math.round(v), x(v), PADT+plotH+18); }
+  ctx.textAlign='left'; ctx.fillText('packs', PADL, PADT-2);
+  // median + mean lines
+  line(ctx, x(res.median), PADT, x(res.median), PADT+plotH, css('--median'), 2);
+  line(ctx, x(res.mean), PADT, x(res.mean), PADT+plotH, css('--mean'), 2, [5,4]);
+  label(ctx, 'median '+res.median, x(res.median), PADT+10, css('--median'));
+  label(ctx, 'mean '+Math.round(res.mean), x(res.mean), PADT+26, css('--mean'));
+}
+
+function drawTail(res, n, cpp, skew, pityOn){
+  const {ctx,w,h} = setup($('tail'));
+  ctx.clearRect(0,0,w,h);
+  const PADL=44, PADB=30, PADT=12, PADR=12;
+  const plotW=w-PADL-PADR, plotH=h-PADB-PADT;
+  const data = res.reachAvg;
+  const maxY = data[n]*1.05;
+  const x = c => PADL + (c/n)*plotW;
+  const y = v => PADT + plotH - (v/maxY)*plotH;
+
+  // shaded last-10 band
+  const k0 = Math.max(1, n-9);
+  ctx.fillStyle = 'rgba(201,161,74,.22)';
+  ctx.beginPath(); ctx.moveTo(x(k0-1), y(data[k0-1]));
+  for(let c=k0;c<=n;c++) ctx.lineTo(x(c), y(data[c]));
+  ctx.lineTo(x(n), y(0)); ctx.lineTo(x(k0-1), y(0)); ctx.closePath(); ctx.fill();
+
+  // curve
+  ctx.strokeStyle = css('--bar'); ctx.lineWidth=2.4; ctx.beginPath();
+  ctx.moveTo(x(0), y(0));
+  for(let c=1;c<=n;c++) ctx.lineTo(x(c), y(data[c]));
+  ctx.stroke();
+
+  // axes
+  ctx.strokeStyle = css('--line'); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(PADL,PADT); ctx.lineTo(PADL,PADT+plotH); ctx.lineTo(PADL+plotW,PADT+plotH); ctx.stroke();
+  ctx.fillStyle = css('--muted'); ctx.font='11px "JetBrains Mono", monospace';
+  ctx.textAlign='center';
+  for(let c=0;c<=n;c+=Math.ceil(n/9)) ctx.fillText(c, x(c), PADT+plotH+18);
+  ctx.textAlign='left'; ctx.fillText('cards', PADL, PADT-2);
+  ctx.textAlign='center';
+  // last 10 label
+  const total = data[n];
+  const last10 = total - data[Math.max(0,n-10)];
+  label(ctx, 'last 10: '+Math.round(100*last10/total)+'%', x(n-5), y(data[n-5])-12, css('--gold'));
+}
+
+function line(ctx,x1,y1,x2,y2,color,lw,dash){
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=lw||1;
+  if(dash) ctx.setLineDash(dash);
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); ctx.restore();
+}
+function label(ctx,txt,cx,cy,color){
+  ctx.save(); ctx.font='600 11px "JetBrains Mono", monospace';
+  const tw = ctx.measureText(txt).width;
+  let x = cx - tw/2; x = Math.max(46, Math.min(x, ctx.canvas.clientWidth - tw - 12));
+  ctx.fillStyle='rgba(14,28,43,.82)'; ctx.fillRect(x-5, cy-10, tw+10, 16);
+  ctx.fillStyle=color; ctx.textAlign='left'; ctx.fillText(txt, x, cy+2); ctx.restore();
+}
+function niceStep(raw){
+  const p=Math.pow(10,Math.floor(Math.log10(raw))); const f=raw/p;
+  return (f<1.5?1:f<3?2:f<7?5:10)*p;
+}
+
+let last=null;
+function run(){
+  const n = (+$('sets').value)*(+$('cps').value);
+  const cpp = +$('cpp').value;
+  const skew = +$('skew').value;
+  const pityOn = $('pity').checked;
+  const pityThr = +$('pityThr').value;
+  const runs = +$('runs').value;
+  if(!(n>0) || !(cpp>0)) return;
+
+  const btn = $('run'); btn.disabled=true; btn.textContent='Running…';
+  setTimeout(()=>{
+    const res = simulate({n,cpp,skew,pityOn,pityThr,runs});
+    last = {res,n,cpp,skew,pityOn};
+    $('kMedian').textContent = fmt(res.median);
+    $('kMean').textContent = Math.round(res.mean);
+    $('kP90').textContent = fmt(res.p90);
+    $('kP99').textContent = fmt(res.p99);
+    $('anchorVal').textContent = (n*harmonic(n)/cpp).toFixed(0);
+    const total = res.reachAvg[n];
+    const last1 = total - res.reachAvg[n-1];
+    const last10 = total - res.reachAvg[Math.max(0,n-10)];
+    const firstHalf = res.reachAvg[Math.floor(n/2)];
+    $('tailStats').innerHTML =
+      `<div><b>${Math.round(100*firstHalf/total)}%</b>first half of the album</div>`+
+      `<div><b>${Math.round(100*last10/total)}%</b>last 10 cards</div>`+
+      `<div><b>${Math.round(100*last1/total)}%</b>final card alone</div>`;
+    drawHist(res);
+    drawTail(res, n, cpp, skew, pityOn);
+    btn.disabled=false; btn.textContent='Run simulation';
+  }, 30);
+}
+
+$('skew').addEventListener('input', e=>$('skewv').textContent=e.target.value);
+$('runs').addEventListener('input', e=>$('runsv').textContent=fmt(+e.target.value));
+$('pityThr').addEventListener('input', e=>$('pityThrv').textContent=e.target.value);
+$('pity').addEventListener('change', e=>$('pityThrField').style.display = e.target.checked?'block':'none');
+$('run').addEventListener('click', run);
+window.addEventListener('resize', ()=>{ if(last){ drawHist(last.res); drawTail(last.res,last.n,last.cpp,last.skew,last.pityOn); } });
+run();
+</script>
+</body>
+</html>
